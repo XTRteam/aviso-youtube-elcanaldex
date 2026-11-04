@@ -45,6 +45,8 @@ MENCION = (os.environ.get("MENCION") or "").strip()
 ARCHIVO_ESTADO = os.environ.get("ARCHIVO_ESTADO", "noticias_vistas.json")
 # Si es mayor que 0, publica ya las N novedades más recientes aunque se hayan visto antes
 FORZAR = int(os.environ.get("FORZAR") or 0)
+# Imagen que se usa cuando la noticia no trae foto ni se encuentra en su página
+IMAGEN_POR_DEFECTO = (os.environ.get("IMAGEN_POR_DEFECTO") or "").strip()
 MAX_GUARDADAS = 800
 COLORES = [0xE74C3C, 0x3498DB, 0x9B59B6, 0x1ABC9C, 0xE67E22, 0x2ECC71]
 
@@ -77,6 +79,36 @@ def primera_imagen(*textos):
         if m:
             return html.unescape(m.group(1))
     return None
+
+
+def imagen_de_pagina(url):
+    """Busca la foto de portada (og:image / twitter:image) de la página de la noticia."""
+    if not url or "news.google." in url:
+        return None  # los enlaces de Google Noticias no llevan a la foto real
+    try:
+        peticion = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (aviso-noticias)"})
+        with urllib.request.urlopen(peticion, timeout=15) as respuesta:
+            pagina = respuesta.read(400_000).decode("utf-8", errors="ignore")
+    except Exception:
+        return None
+    patrones = [
+        r'<meta[^>]+(?:property|name)=["\'](?:og:image|og:image:url|twitter:image)["\'][^>]*content=["\']([^"\']+)',
+        r'<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:property|name)=["\'](?:og:image|og:image:url|twitter:image)["\']',
+    ]
+    for patron in patrones:
+        m = re.search(patron, pagina, re.IGNORECASE)
+        if m:
+            imagen = html.unescape(m.group(1)).strip()
+            if imagen.startswith("//"):
+                imagen = "https:" + imagen
+            if imagen.startswith("http"):
+                return imagen
+    return None
+
+
+def poner_imagen(noticia):
+    if not noticia.get("imagen"):
+        noticia["imagen"] = imagen_de_pagina(noticia["enlace"]) or IMAGEN_POR_DEFECTO or None
 
 
 def fecha_a_numero(texto):
@@ -251,6 +283,7 @@ def main():
         return
 
     for i, noticia in enumerate(reversed(elegidas)):
+        poner_imagen(noticia)
         cuerpo = {
             "content": MENCION if (MENCION and i == 0) else None,
             "embeds": [crear_embed(noticia, colores.get(noticia["fuente"], COLORES[0]))],
