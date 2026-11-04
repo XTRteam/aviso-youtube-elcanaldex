@@ -1,0 +1,53 @@
+name: Aviso de Once Human
+
+on:
+  schedule:
+    - cron: "57 * * * *"   # cada hora
+  workflow_dispatch:        # botón para lanzarlo a mano
+    inputs:
+      forzar:
+        description: "Publicar ya las últimas N novedades (0 = funcionamiento normal)"
+        required: false
+        default: "3"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aviso-oncehuman
+  cancel-in-progress: false
+
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Comprobar novedades de Once Human
+        env:
+          DISCORD_WEBHOOK_NOTICIAS: ${{ secrets.DISCORD_WEBHOOK_ONCEHUMAN }}
+          FUENTES: |
+            🌐 Web oficial · oncehuman.game | html:https://www.oncehuman.game/m/news/
+            📢 Anuncio oficial · Steam | https://store.steampowered.com/feeds/news/app/2139460/
+            📰 Prensa · Google Noticias | https://news.google.com/rss/search?q=%22Once+Human%22&hl=es&gl=ES&ceid=ES:es
+          FUENTES_EXTRA: ${{ vars.FUENTES_EXTRA_ONCEHUMAN }}
+          PALABRAS_CLAVE: ""
+          MAX_NOTICIAS: ${{ vars.MAX_ONCEHUMAN }}
+          MENCION: ${{ vars.MENCION_ONCEHUMAN }}
+          ARCHIVO_ESTADO: oncehuman_vistas.json
+          FORZAR: ${{ github.event.inputs.forzar || '0' }}
+          IMAGEN_POR_DEFECTO: ${{ vars.IMAGEN_ONCEHUMAN }}
+          STEAM_APPID: "2139460"
+        run: python3 aviso_oncehuman.py
+
+      - name: Guardar avisos ya enviados
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain oncehuman_vistas.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add oncehuman_vistas.json
+            git commit -m "Actualizar avisos de Once Human"
+            git pull --rebase
+            git push
+          fi
