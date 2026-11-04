@@ -1,0 +1,21 @@
+name: Cuenta atrás Ananta
+
+on:
+  schedule:
+    - cron: "11 9 * * *"   # cada día sobre las 10:00 (hora de España en invierno)
+  workflow_dispatch:        # botón para publicarlo ya
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Publicar cuenta atrás
+        env:
+          DISCORD_WEBHOOK_CUENTA_ATRAS: ${{ secrets.DISCORD_WEBHOOK_CUENTA_ATRAS_ANANTA }}
+          FECHA_OBJETIVO: "2027-01-15"
+          NOMBRE: "Ananta"
+          MENCION: ${{ vars.MENCION_CUENTA_ATRAS_ANANTA }}
+          IMAGEN: ${{ vars.IMAGEN_CUENTA_ATRAS_ANANTA }}
+        run: python3 aviso_cuenta_atras.py
