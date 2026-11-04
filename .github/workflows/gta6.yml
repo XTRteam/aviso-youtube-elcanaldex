@@ -1,0 +1,51 @@
+name: Aviso de GTA 6
+
+on:
+  schedule:
+    - cron: "13,43 * * * *"   # cada 30 minutos
+  workflow_dispatch:           # botón para lanzarlo a mano
+    inputs:
+      forzar:
+        description: "Publicar ya las últimas N novedades (0 = funcionamiento normal)"
+        required: false
+        default: "3"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aviso-gta6
+  cancel-in-progress: false
+
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Comprobar novedades de GTA 6
+        env:
+          DISCORD_WEBHOOK_NOTICIAS: ${{ secrets.DISCORD_WEBHOOK_GTA6 }}
+          FUENTES: |
+            🌐 Rockstar Newswire | rockstar:https://www.rockstargames.com/es/newswire
+            🎬 YouTube oficial de Rockstar | https://www.youtube.com/feeds/videos.xml?channel_id=UC6VcWc1rAoWdBCM0JxrRQ3A
+          FUENTES_EXTRA: ${{ vars.FUENTES_EXTRA_GTA6 }}
+          PALABRAS_CLAVE: ${{ vars.PALABRAS_GTA6 || 'GTA VI, GTA 6, Grand Theft Auto VI, Grand Theft Auto 6, Leonida, Vice City' }}
+          MAX_NOTICIAS: ${{ vars.MAX_GTA6 }}
+          MENCION: ${{ vars.MENCION_GTA6 }}
+          ARCHIVO_ESTADO: gta6_vistas.json
+          FORZAR: ${{ github.event.inputs.forzar || '0' }}
+          IMAGEN_POR_DEFECTO: ${{ vars.IMAGEN_GTA6 }}
+        run: python3 aviso_gta6.py
+
+      - name: Guardar avisos ya enviados
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain gta6_vistas.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add gta6_vistas.json
+            git commit -m "Actualizar avisos de GTA 6"
+            git pull --rebase
+            git push
+          fi
