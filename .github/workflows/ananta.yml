@@ -35,7 +35,8 @@ jobs:
           MENCION: ${{ vars.MENCION_ANANTA }}
           ARCHIVO_ESTADO: ananta_vistas.json
           FORZAR: ${{ github.event.inputs.forzar || '0' }}
-          IMAGEN_POR_DEFECTO: ${{ vars.IMAGEN_ANANTA || 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4814120/header.jpg' }}
+          IMAGEN_POR_DEFECTO: ${{ vars.IMAGEN_ANANTA }}
+          STEAM_APPID: "4814120"
         run: python3 aviso_ananta.py
 
       - name: Guardar avisos ya enviados
