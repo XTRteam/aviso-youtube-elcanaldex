@@ -47,6 +47,8 @@ ARCHIVO_ESTADO = os.environ.get("ARCHIVO_ESTADO", "noticias_vistas.json")
 FORZAR = int(os.environ.get("FORZAR") or 0)
 # Imagen que se usa cuando la noticia no trae foto ni se encuentra en su página
 IMAGEN_POR_DEFECTO = (os.environ.get("IMAGEN_POR_DEFECTO") or "").strip()
+# Si no hay imagen por defecto, se usa la portada del juego en Steam (por su App ID)
+STEAM_APPID = (os.environ.get("STEAM_APPID") or "").strip()
 MAX_GUARDADAS = 800
 COLORES = [0xE74C3C, 0x3498DB, 0x9B59B6, 0x1ABC9C, 0xE67E22, 0x2ECC71]
 
@@ -106,9 +108,37 @@ def imagen_de_pagina(url):
     return None
 
 
+_portada_steam = []
+
+
+def portada_steam():
+    """Portada oficial del juego, pedida a la tienda de Steam (se guarda tras la 1.ª vez)."""
+    if not _portada_steam:
+        imagen = None
+        if STEAM_APPID:
+            try:
+                url = f"https://store.steampowered.com/api/appdetails?appids={STEAM_APPID}&l=spanish"
+                peticion = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (aviso-noticias)"})
+                with urllib.request.urlopen(peticion, timeout=15) as respuesta:
+                    datos = json.loads(respuesta.read())
+                info = (datos.get(STEAM_APPID) or {}).get("data") or {}
+                imagen = info.get("header_image") or info.get("capsule_image")
+            except Exception as e:
+                print(f"⚠️ No se pudo obtener la portada de Steam: {e}")
+        _portada_steam.append(imagen)
+    return _portada_steam[0]
+
+
 def poner_imagen(noticia):
-    if not noticia.get("imagen"):
-        noticia["imagen"] = imagen_de_pagina(noticia["enlace"]) or IMAGEN_POR_DEFECTO or None
+    if noticia.get("imagen"):
+        origen = "propia"
+    else:
+        noticia["imagen"] = imagen_de_pagina(noticia["enlace"])
+        origen = "de su página"
+        if not noticia["imagen"]:
+            noticia["imagen"] = IMAGEN_POR_DEFECTO or portada_steam()
+            origen = "por defecto"
+    print(f"   🖼️ Imagen {origen}: {noticia['imagen'] or 'ninguna'}")
 
 
 def fecha_a_numero(texto):
