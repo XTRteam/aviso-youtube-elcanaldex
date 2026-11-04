@@ -43,6 +43,8 @@ PALABRAS = [p.strip() for p in (os.environ.get("PALABRAS_CLAVE") or "").split(",
 MAX_NOTICIAS = int(os.environ.get("MAX_NOTICIAS") or 5)
 MENCION = (os.environ.get("MENCION") or "").strip()
 ARCHIVO_ESTADO = os.environ.get("ARCHIVO_ESTADO", "noticias_vistas.json")
+# Si es mayor que 0, publica ya las N novedades más recientes aunque se hayan visto antes
+FORZAR = int(os.environ.get("FORZAR") or 0)
 MAX_GUARDADAS = 800
 COLORES = [0xE74C3C, 0x3498DB, 0x9B59B6, 0x1ABC9C, 0xE67E22, 0x2ECC71]
 
@@ -207,7 +209,9 @@ def main():
     noticias, fallos = [], []
     for nombre, url in fuentes:
         try:
-            noticias += leer_feed(nombre, url)
+            leidas = leer_feed(nombre, url)
+            noticias += leidas
+            print(f"✅ {nombre}: {len(leidas)} publicaciones leídas.")
         except Exception as e:
             fallos.append(nombre)
             print(f"⚠️ No se pudo leer {nombre} ({url}): {e}")
@@ -216,6 +220,17 @@ def main():
         sys.exit("No se ha podido leer ninguna fuente. Revisa las URL de FUENTES.")
 
     vistas = cargar_estado()
+
+    if not noticias:
+        print("Las fuentes no han devuelto ninguna publicación.")
+        return
+
+    # Publicación forzada: las N más recientes, aunque ya se hubieran visto
+    if FORZAR > 0:
+        print(f"Publicación forzada de las {FORZAR} novedades más recientes.")
+        vistas = [n["enlace"] for n in noticias if n not in
+                  sorted(noticias, key=lambda n: n["fecha"], reverse=True)[:FORZAR]]
+        guardar_estado(vistas)
 
     # Primera ejecución: guarda las noticias actuales sin avisar
     if vistas is None:
@@ -226,7 +241,7 @@ def main():
     nuevas = [n for n in noticias if n["enlace"] not in vistas and interesa(n)]
     # Las más recientes primero, y solo hasta el máximo
     nuevas.sort(key=lambda n: n["fecha"], reverse=True)
-    elegidas = nuevas[:MAX_NOTICIAS]
+    elegidas = nuevas[:max(MAX_NOTICIAS, FORZAR)]
     # Las que no caben ni interesan también se marcan como vistas, para no avisarlas tarde
     descartadas = [n["enlace"] for n in noticias if n["enlace"] not in vistas and n not in elegidas]
 
