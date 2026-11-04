@@ -240,11 +240,12 @@ def leer_rockstar(nombre, url):
     /newswire/article/<número>/<titulo-con-guiones>. El título provisional se saca
     de la dirección y, al publicar, se cambia por el título real del artículo."""
     pagina = descargar_texto(url, 2_000_000)
-    patron = re.compile(r'(?:https?://www\.rockstargames\.com)?(/(?:[a-z]{2}(?:-[a-z]{2})?/)?newswire/article/(\d+)/([a-z0-9][a-z0-9-]*))',
+    # El identificador puede tener letras y números (p. ej. ak3ak31a49a221)
+    patron = re.compile(r'(?:https?://www\.rockstargames\.com)?(/(?:[a-z]{2}(?:-[a-z]{2})?/)?newswire/article/([a-z0-9]+)/([a-z0-9][a-z0-9-]*))',
                         re.IGNORECASE)
     noticias, vistos = [], set()
     ahora = time.time()
-    for ruta, numero, slug in patron.findall(pagina.replace("\\/", "/")):
+    for posicion, (ruta, numero, slug) in enumerate(patron.findall(pagina.replace("\\/", "/"))):
         if numero in vistos:
             continue
         vistos.add(numero)
@@ -254,8 +255,8 @@ def leer_rockstar(nombre, url):
             "enlace": f"https://www.rockstargames.com/newswire/article/{numero}/{slug}",
             "resumen": "",
             "imagen": None,
-            # La Newswire no da fecha en la lista: se ordena por su número (más alto = más nuevo)
-            "fecha": ahora - 1_000_000 + int(numero) / 1_000_000,
+            # La Newswire no da fecha en la lista: se ordena por posición (arriba = más nuevo)
+            "fecha": ahora - 86_400 - posicion * 60,
             "pedir_titulo": True,
         })
     return noticias
