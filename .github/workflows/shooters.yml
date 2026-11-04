@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "47 * * * *"   # cada hora
   workflow_dispatch:        # botón para lanzarlo a mano
+    inputs:
+      forzar:
+        description: "Publicar ya las últimas N noticias de shooters (0 = funcionamiento normal)"
+        required: false
+        default: "3"
 
 permissions:
   contents: write
@@ -26,7 +31,9 @@ jobs:
           MAX_NOTICIAS: ${{ vars.MAX_SHOOTERS }}
           MENCION: ${{ vars.MENCION_SHOOTERS }}
           ARCHIVO_ESTADO: shooters_vistas.json
-        run: python3 aviso_noticias.py
+          FORZAR: ${{ github.event.inputs.forzar || '0' }}
+          IMAGEN_POR_DEFECTO: ${{ vars.IMAGEN_SHOOTERS }}
+        run: python3 aviso_shooters.py
 
       - name: Guardar noticias ya avisadas
         if: always()
