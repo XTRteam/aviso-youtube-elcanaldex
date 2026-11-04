@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "27 * * * *"   # cada hora
   workflow_dispatch:        # botón para lanzarlo a mano
+    inputs:
+      forzar:
+        description: "Publicar ya las últimas N novedades (0 = funcionamiento normal)"
+        required: false
+        default: "3"
 
 permissions:
   contents: write
@@ -29,6 +34,7 @@ jobs:
           MAX_NOTICIAS: ${{ vars.MAX_ANANTA }}
           MENCION: ${{ vars.MENCION_ANANTA }}
           ARCHIVO_ESTADO: ananta_vistas.json
+          FORZAR: ${{ github.event.inputs.forzar || '0' }}
         run: python3 aviso_ananta.py
 
       - name: Guardar avisos ya enviados
