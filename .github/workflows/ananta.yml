@@ -1,0 +1,44 @@
+name: Aviso de Ananta
+
+on:
+  schedule:
+    - cron: "27 * * * *"   # cada hora
+  workflow_dispatch:        # botón para lanzarlo a mano
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aviso-ananta
+  cancel-in-progress: false
+
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Comprobar novedades de Ananta
+        env:
+          DISCORD_WEBHOOK_NOTICIAS: ${{ secrets.DISCORD_WEBHOOK_ANANTA }}
+          FUENTES: |
+            📢 Anuncio oficial · Steam | https://store.steampowered.com/feeds/news/app/4814120/
+            📰 Prensa · Google Noticias | https://news.google.com/rss/search?q=%22Ananta%22+(NetEase+OR+juego+OR+PS5)&hl=es&gl=ES&ceid=ES:es
+          FUENTES_EXTRA: ${{ vars.FUENTES_EXTRA_ANANTA }}
+          PALABRAS_CLAVE: ""
+          MAX_NOTICIAS: ${{ vars.MAX_ANANTA }}
+          MENCION: ${{ vars.MENCION_ANANTA }}
+          ARCHIVO_ESTADO: ananta_vistas.json
+        run: python3 aviso_ananta.py
+
+      - name: Guardar avisos ya enviados
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain ananta_vistas.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add ananta_vistas.json
+            git commit -m "Actualizar avisos de Ananta"
+            git pull --rebase
+            git push
+          fi
