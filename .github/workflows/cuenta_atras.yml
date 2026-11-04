@@ -13,7 +13,7 @@ jobs:
 
       - name: Publicar cuenta atrás
         env:
-          DISCORD_WEBHOOK_CUENTA_ATRAS: ${{ secrets.DISCORD_WEBHOOK_GTA6 }}
+          DISCORD_WEBHOOK_CUENTA_ATRAS: ${{ secrets.DISCORD_WEBHOOK_CUENTA_ATRAS }}
           FECHA_OBJETIVO: "2026-11-19"
           NOMBRE: "GTA 6"
           MENCION: ${{ vars.MENCION_CUENTA_ATRAS }}
