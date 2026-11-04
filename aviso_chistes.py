@@ -60,7 +60,7 @@ def crear_embed(chiste):
     else:
         texto = chiste
     return {
-        "title": "😂 Chiste gamer",
+        "title": os.environ.get("TITULO_CHISTES") or "😂 Hora del chiste",
         "description": texto,
         "color": random.choice(COLORES),
     }
