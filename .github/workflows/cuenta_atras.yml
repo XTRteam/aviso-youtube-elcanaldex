@@ -1,0 +1,21 @@
+name: Cuenta atrás GTA 6
+
+on:
+  schedule:
+    - cron: "7 9 * * *"   # cada día sobre las 10:00 (hora de España en invierno)
+  workflow_dispatch:       # botón para publicarlo ya
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Publicar cuenta atrás
+        env:
+          DISCORD_WEBHOOK_CUENTA_ATRAS: ${{ secrets.DISCORD_WEBHOOK_GTA6 }}
+          FECHA_OBJETIVO: "2026-11-19"
+          NOMBRE: "GTA 6"
+          MENCION: ${{ vars.MENCION_CUENTA_ATRAS }}
+          IMAGEN: ${{ vars.IMAGEN_CUENTA_ATRAS }}
+        run: python3 aviso_cuenta_atras.py
