@@ -1,0 +1,40 @@
+name: Aviso de noticias
+
+on:
+  schedule:
+    - cron: "37 * * * *"   # cada hora
+  workflow_dispatch:        # botón para lanzarlo a mano
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aviso-noticias
+  cancel-in-progress: false
+
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Comprobar noticias nuevas
+        env:
+          DISCORD_WEBHOOK_NOTICIAS: ${{ secrets.DISCORD_WEBHOOK_NOTICIAS }}
+          FUENTES: ${{ vars.FUENTES }}
+          PALABRAS_CLAVE: ${{ vars.PALABRAS_CLAVE }}
+          MAX_NOTICIAS: ${{ vars.MAX_NOTICIAS }}
+          MENCION: ${{ vars.MENCION_NOTICIAS }}
+        run: python3 aviso_noticias.py
+
+      - name: Guardar noticias ya avisadas
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain noticias_vistas.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add noticias_vistas.json
+            git commit -m "Actualizar noticias avisadas"
+            git pull --rebase
+            git push
+          fi
