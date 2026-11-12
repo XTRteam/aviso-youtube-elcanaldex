@@ -3,18 +3,35 @@ name: Cuenta atrás Ananta
 on:
   schedule:
     - cron: "11 9 * * *"   # cada día sobre las 10:00 (hora de España en invierno)
-  workflow_dispatch:        # botón para publicarlo ya
+  workflow_dispatch:        # botón para publicarlo ya (publica siempre, falten los días que falten)
 
 jobs:
   publicar:
     runs-on: ubuntu-latest
+    env:
+      FECHA_OBJETIVO: "2027-01-15"
+      DIAS_INICIO: "20"     # la cuenta atrás empieza cuando faltan estos días
     steps:
+      - name: ¿Toca publicar hoy?
+        id: dias
+        run: |
+          hoy=$(TZ=Europe/Madrid date +%F)
+          faltan=$(( ( $(date -u -d "$FECHA_OBJETIVO" +%s) - $(date -u -d "$hoy" +%s) ) / 86400 ))
+          echo "Faltan $faltan días para el $FECHA_OBJETIVO"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$faltan" -le "$DIAS_INICIO" ]; then
+            echo "publicar=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "publicar=no" >> "$GITHUB_OUTPUT"
+            echo "Todavía faltan más de $DIAS_INICIO días: hoy no se publica nada."
+          fi
+
       - uses: actions/checkout@v5
+        if: steps.dias.outputs.publicar == 'si'
 
       - name: Publicar cuenta atrás
+        if: steps.dias.outputs.publicar == 'si'
         env:
           DISCORD_WEBHOOK_CUENTA_ATRAS: ${{ secrets.DISCORD_WEBHOOK_CUENTA_ATRAS_ANANTA }}
-          FECHA_OBJETIVO: "2027-01-15"
           NOMBRE: "Ananta"
           MENCION: ${{ vars.MENCION_CUENTA_ATRAS_ANANTA }}
           IMAGEN: ${{ vars.IMAGEN_CUENTA_ATRAS_ANANTA }}
